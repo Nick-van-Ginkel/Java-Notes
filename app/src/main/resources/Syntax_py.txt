@@ -1,0 +1,9 @@
+keywords: await else import pass break except in raise class  finally is return and continue for lambda try as def from nonlocal while assert del global not with async elif if or yield
+keywordsSecondary: False None True
+keywordsBold: 
+keyWordsBoldSecondary: 
+comment: 
+multiLineComment: #.*$
+multiLineComment2: 
+string: ([\"].*?[\"]|[\'].*?[\'])
+char: 

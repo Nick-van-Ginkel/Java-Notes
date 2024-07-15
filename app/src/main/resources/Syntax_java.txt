@@ -1,0 +1,9 @@
+keywords: public static void int class byte abstract boolean char double enum final float interface long native package private protected short synchronized transient volatile
+keywordsSecondary: 
+keywordsBold: assert break case catch continue default do else extends finally for if implements import instanceof new return super switch this throw throws try while true false null
+keyWordsBoldSecondary: 
+comment: 
+multiLineComment: (//.*$|/\*[[.*][^*]]*?\*/)
+multiLineComment2: (?<!//.*|/\*.*)/\*\*[[.*][^*]]*?\*\*/
+string: ([\"].*?[\"]|[\'].*?[\'])
+char: 

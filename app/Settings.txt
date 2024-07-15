@@ -1,0 +1,4 @@
+font: Constantia
+font-size: 14
+line-numbers: false
+theme: javax.swing.UIManager$LookAndFeelInfo[Nimbus javax.swing.plaf.nimbus.NimbusLookAndFeel]
