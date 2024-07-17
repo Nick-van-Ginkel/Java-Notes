@@ -71,16 +71,17 @@ import com.formdev.flatlaf.FlatDarculaLaf;
 import com.formdev.flatlaf.FlatLaf;
 import javax.swing.UIManager.LookAndFeelInfo;
 import java.awt.FlowLayout;
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 //import com.formdev.flatlaf.intellijthemes.*;
 
 
 /*
 TODO: 
+-Fix Bug: sometimes the very end of the file is cutoff.
 -maybe add a run button to the menu bar
--make settings menu
-	change colors
-	change default directory
 */
 
 
@@ -102,85 +103,6 @@ public class JavaNotes {
 		chooser.addChoosableFileFilter(new FileNameExtensionFilter("C-Sharp File", "cs"));
 		chooser.addChoosableFileFilter(new FileNameExtensionFilter("Ruby File", "rb"));
 		//chooser.addChoosableFileFilter(new FileNameExtensionFilter("Kotlin File", "kts"));
-		
-		
-		
-		/*JPanel panel = new JPanel();
-		panel.setLayout(new BorderLayout());
-		
-		StyledDocument lineStyle = lineNumbers.getStyledDocument();
-		SimpleAttributeSet align = new SimpleAttributeSet();
-		StyleConstants.setAlignment(align, StyleConstants.ALIGN_RIGHT);
-		lineStyle.setParagraphAttributes(0, lineStyle.getLength(), align, false);
-		lineNumbers.setBackground(Color.LIGHT_GRAY);
-		lineNumbers.setAlignmentY(JTextArea.RIGHT_ALIGNMENT);
-		lineNumbers.setEnabled(false);
-		
-		lineNumbers.setDisabledTextColor(Color.darkGray);
-		lineNumbers.setText(numLines+"\n");
-		
-		//create undo manager
-		UndoManager undoManager = new UndoManager();
-		text.getDocument().addUndoableEditListener(undoManager);
-		
-		text.setForeground(Color.black);
-		
-		//set HighLightDocumentFilter as the document filter to enable syntax highlighting support
-		HighLightDocumentFilter docFilter = new HighLightDocumentFilter();
-		((AbstractDocument) text.getDocument()).setDocumentFilter(docFilter);
-		
-		//override what happens when BACKSPACE and ENTER are pressed to maintain correct line count
-		text.addKeyListener(
-			new KeyAdapter() {
-				char previousLeft = ' ';
-				
-				@Override
-				public void keyPressed(KeyEvent e) {
-					char key = e.getKeyChar();
-					if(e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-						System.out.println("BACKSPACE PRESSED");
-						if(text.getCaret().getDot() == 0) return;
-						previousLeft = text.getText().charAt(text.getCaret().getDot()-1);
-						if(text.getCaret().getDot() > 0) {
-							if(previousLeft == '\n') {
-								numLines--;
-								lineNumbers.setText("");
-								for(int i = 1; i <= numLines; i++) {
-									lineNumbers.setText(lineNumbers.getText() + i+'\n');
-								}
-							}
-						}
-						
-					} else {
-						//manually make sure \n char is used when pressing insert (done b/c it doesn't seem to always use a \n for some reason when normally pressing enter)
-						if(e.getKeyCode() == KeyEvent.VK_ENTER) {
-							int pos = text.getCaretPosition();
-							e.consume();
-							key = '\n';
-							System.out.println("Enter Pressed!");
-							numLines++;
-							lineNumbers.setText(lineNumbers.getText() + numLines + key);
-							//text.setText(text.getText() + '\n');
-							String s1 = text.getText().substring(0, text.getCaretPosition());
-							String s2 = text.getText().substring(text.getCaretPosition(), text.getText().length());
-							text.setText(s1 + key + s2);
-							System.out.println(text.getText().substring(0, text.getCaretPosition()) + " | " + text.getCaretPosition());
-							text.setCaretPosition(pos+1);
-						}
-						
-					}
-				}
-			}
-		);
-		
-		panel.add(text);
-		JScrollPane scrollPane = new JScrollPane(panel);
-		scrollPane.setRowHeaderView(lineNumbers);*/
-		
-		
-		
-		
-		
 		
 		JTabbedPane tabPane = new JTabbedPane();
 		frame.add(tabPane);
@@ -222,15 +144,17 @@ public class JavaNotes {
 		open.addActionListener(
 			new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					
+					System.out.println("open clicked!");
 					chooser.showOpenDialog(frame);
 					TextEditor editor = new TextEditor(chooser.getSelectedFile().getName(), settings, chooser.getSelectedFile());
+					//load file
 					String content = "";
 					try{
-						FileChannel fileChannel = FileChannel.open(chooser.getSelectedFile().toPath(), StandardOpenOption.READ);
+						/*FileChannel fileChannel = FileChannel.open(chooser.getSelectedFile().toPath(), StandardOpenOption.READ);
 						
 						int numberOfThreads = Runtime.getRuntime().availableProcessors();
 						long chunkSize = fileChannel.size() / numberOfThreads;
+						System.out.println("chunk size = "+chunkSize);
 						List<StringThread> threads = new ArrayList<StringThread>();
 						for(int i = 0; i < numberOfThreads; i++) {
 							long start = i*chunkSize;
@@ -240,15 +164,17 @@ public class JavaNotes {
 							stringThread.start();
 						}
 						
-						
 						for(StringThread thread: threads) {
 							thread.join();
 							content += thread.getString();
-							//editor.text.getDocument().insertString(editor.text.getDocument().getLength(), thread.getString(), null);
-						}
+						}*/
 						
-						//editor.text.setText(content);
-						//editor.undoManager.discardAllEdits();
+						FileChannel fileChannel = new FileInputStream(chooser.getSelectedFile()).getChannel();
+						byte[] barray = new byte[(int) chooser.getSelectedFile().length()];
+						ByteBuffer bb = ByteBuffer.wrap(barray);
+						bb.order(ByteOrder.LITTLE_ENDIAN);
+						fileChannel.read(bb);
+						content = new String(barray);
 						
 						openFiles.add(editor);
 						tabPane.addTab(editor.name, editor.scrollPane);
@@ -256,53 +182,26 @@ public class JavaNotes {
 						tabPane.setSelectedComponent(editor.scrollPane);
 					}catch(IOException ioEx) {
 						ioEx.printStackTrace();
-					}catch(InterruptedException interuptEx) {
+					}/*catch(InterruptedException interuptEx) {
 						interuptEx.printStackTrace();
-					}
+					}*/
 					
-					System.out.println("open clicked!");
-					/*try{
-						Scanner scanner = new Scanner(content); //chooser.getSelectedFile()
-						//frame.setTitle("Java Notes - " + chooser.getSelectedFile().getName());
-						//text.setText("");
-						//numLines = 1;
-						//lineNumbers.setText("");
-						TextEditor editor = new TextEditor(chooser.getSelectedFile().getName(), settings);
-						editor.name = chooser.getSelectedFile().getName();
-						SwingUtilities.invokeLater(new Runnable() {
-							@Override
-							public void run() {
-								while(scanner.hasNextLine()) {
-									try{
-									//editor.text.setText(editor.text.getText() + scanner.nextLine() + "\n");
-									editor.text.getDocument().insertString(editor.text.getDocument().getLength(), scanner.nextLine() + "\n", null);
-									editor.lineNumbers.setText(editor.lineNumbers.getText() + editor.numLines+"\n");
-									editor.numLines++;
-									}catch(BadLocationException badasdf) {}
-								}
-							}
-						});
-						
-						//scanner.close();
-						editor.undoManager.discardAllEdits();
-						//editor.docFilter.loadSytaxHighlighting();
-						openFiles.add(editor);
-						tabPane.addTab(editor.name, editor.scrollPane);
-					}catch(FileNotFoundException error) {System.out.println("File Does Not Exist");error.printStackTrace();}*/
-					
+					//make sure each line ends in a \n because the regex patterns rely on it
 					String formattedContent = "";
 					try(BufferedReader bufferedReader = new BufferedReader(new StringReader(content))){
 						String line;
 						while((line = bufferedReader.readLine()) != null){ 
-							formattedContent += line + "\n";
-							editor.lineNumbers.getDocument().insertString(editor.lineNumbers.getDocument().getLength(), editor.numLines + "\n", null);
+							if(line.length() > 0 && line.charAt(line.length()-1) == '\n') formattedContent += line;
+							else formattedContent += line + "\n";
+							//skip first line addition because it is already added when TextEditor is created
+							if(editor.numLines != 1) editor.lineNumbers.getDocument().insertString(editor.lineNumbers.getDocument().getLength(), editor.numLines + "\n", null);
 							editor.numLines++;
 						}
 						bufferedReader.close();
 					}catch(IOException bufferError) {bufferError.printStackTrace();} catch(BadLocationException badLocBufferReader) {badLocBufferReader.printStackTrace();}
 					
 					editor.text.setText(formattedContent);
-					
+					editor.undoManager.discardAllEdits();
 					
 				}
 			}
@@ -313,15 +212,7 @@ public class JavaNotes {
 		save.addActionListener(
 			new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					/*System.out.println("save clicked!");
-					if(chooser.getSelectedFile() == null) {
-						System.out.println("Error: No File Location Selected - Please Save As first");
-						return;
-					}
-					try(FileWriter writer = new FileWriter(chooser.getSelectedFile())){
-						writer.write(text.getText());
-						writer.close();
-					}catch(IOException io) {io.printStackTrace();}*/
+					System.out.println("save clicked!");
 					try(FileWriter writer = new FileWriter(openFiles.get(tabPane.getSelectedIndex()).file)){
 						writer.write(openFiles.get(tabPane.getSelectedIndex()).text.getText());
 						writer.close();
@@ -336,12 +227,6 @@ public class JavaNotes {
 			new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					System.out.println("save as clicked!");
-					/*chooser.showSaveDialog(frame);
-					try(FileWriter writer = new FileWriter(chooser.getSelectedFile())){
-						writer.write(text.getText());
-						writer.close();
-						docFilter.loadSytaxHighlighting();
-					}catch(IOException io) {io.printStackTrace();}*/
 					
 					chooser.showSaveDialog(frame);
 					openFiles.get(tabPane.getSelectedIndex()).file = chooser.getSelectedFile();
@@ -349,7 +234,6 @@ public class JavaNotes {
 						writer.write(openFiles.get(tabPane.getSelectedIndex()).text.getText());
 						writer.close();
 						openFiles.get(tabPane.getSelectedIndex()).docFilter.loadSytaxHighlighting();
-						//tabPane.setTitleAt(tabPane.getSelectedIndex(), chooser.getSelectedFile().getName());
 						((ButtonTab) tabPane.getTabComponentAt(tabPane.getSelectedIndex())).setTitle(chooser.getSelectedFile().getName());
 					}catch(IOException io) {
 						System.out.println("Error Saving File As");
@@ -398,18 +282,11 @@ public class JavaNotes {
 		tools.add(find);
 		bar.add(tools);
 		JMenu settingsButton = new JMenu("Settings");
-		/*settingsButton.addActionListener(
-			new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
-					System.out.println("settings clicked!");
-					settings.open();
-				}
-			}
-		);*/
 		settingsButton.addMouseListener(
 			new MouseListener() {
 				@Override
 				public void mouseClicked(MouseEvent e) {
+					System.out.println("settings clicked!");
 					settings.open();
 				}
 				@Override
@@ -500,8 +377,13 @@ public class JavaNotes {
 		@Override
 		public void run() {
 			byte[] bytes = new byte[buffer.remaining()];
-			buffer.get(bytes, buffer.position(), buffer.remaining());
+			try{
+				buffer.get(bytes, buffer.position(), buffer.remaining()); // can also just use 0 instead of buffer.position()
+			}catch(BufferUnderflowException bufunderflowex) {
+				bufunderflowex.printStackTrace();
+			}
 			string = new String(bytes);
+			System.out.print(string+"/");
 		}
 	}
 	
@@ -579,7 +461,7 @@ public class JavaNotes {
 			docFilter = new HighLightDocumentFilter(text);
 			((AbstractDocument) text.getDocument()).setDocumentFilter(docFilter);
 			
-			System.out.println("text");
+			//System.out.println("text");
 			
 			//override what happens when BACKSPACE and ENTER are pressed to maintain correct line count
 			text.addKeyListener(
@@ -621,7 +503,7 @@ public class JavaNotes {
 								Matcher lineMatcher = lastLinePattern.matcher(s1);
 								String lastLine = "";
 								while(lineMatcher.find()) lastLine = lineMatcher.group();//text.getText().substring(lineMatcher.start(), lineMatcher.end());
-								System.out.println("last line matched: " + lastLine + " | ENDOFLINE");
+								//System.out.println("last line matched: " + lastLine + " | ENDOFLINE");
 								
 								Pattern tabPattern = Pattern.compile("^\\t*", Pattern.MULTILINE);
 								Matcher tabMatcher = tabPattern.matcher(lastLine);
@@ -629,12 +511,12 @@ public class JavaNotes {
 								String tabs = "";
 								if(tabsFound) {
 									tabs = tabMatcher.group();
-									System.out.println("tabs: |" + tabs + "|END");
+									//System.out.println("tabs: |" + tabs + "|END");
 									offset+=tabs.length();
 								}
 								
 								text.setText(s1 + key + tabs + s2);
-								System.out.println(text.getText().substring(0, text.getCaretPosition()) + " | " + text.getCaretPosition());
+								//System.out.println(text.getText().substring(0, text.getCaretPosition()) + " | " + text.getCaretPosition());
 								text.setCaretPosition(pos+offset);
 							}
 							
@@ -698,7 +580,7 @@ public class JavaNotes {
 								try {
 									String theme = "";
 									while(line.hasNext()) theme = line.next();
-									System.out.println("loading theme: " + theme);
+									//System.out.println("loading theme: " + theme);
 									UIManager.setLookAndFeel( theme.substring(0, theme.length()-1) );
 									SwingUtilities.updateComponentTreeUI(frame);
 									SwingUtilities.updateComponentTreeUI(settings);
@@ -730,35 +612,26 @@ public class JavaNotes {
 			
 			//ui to change the font
 			JPanel panelFontName = new JPanel(new FlowLayout(FlowLayout.LEFT));
-			//panelFontName.setLayout(new BoxLayout(panelFontName, BoxLayout.X_AXIS));
 			JLabel FontNameLabel = new JLabel("Font name:");
 			panelFontName.add(FontNameLabel);
 			String[] fontNameList = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
 			fontName = new JComboBox(fontNameList);
 			panelFontName.add(fontName);
-			//panelFontName.setBorder(new EmptyBorder(0, 0, 5, 0));
 			panelSettings.add(panelFontName);
 			
 			//ui to change font-size
 			JPanel panelFontSize = new JPanel(new FlowLayout(FlowLayout.LEFT));
-			//panelFontSize.setLayout(new BoxLayout(panelFontSize, BoxLayout.X_AXIS));
 			JLabel FontSizeLabel = new JLabel("Font size:");
 			panelFontSize.add(FontSizeLabel);
 			String[] fontSizeList = {"5", "6", "7", "8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28"};
 			fontSize = new JComboBox(fontSizeList);
-			//fontSize.setSelectedItem(font.getSize());
 			panelFontSize.add(fontSize);
-			//panelFontSize.setBorder(new EmptyBorder(0, 0, 5, 0));
 			panelSettings.add(panelFontSize);
 			
 			//ui to choose line number visibility
 			JPanel panelLineNum = new JPanel(new FlowLayout(FlowLayout.LEFT));
-			//panelLineNum.setLayout(new BoxLayout(panelLineNum, BoxLayout.X_AXIS));
-			//JLabel lineNumLabel = new JLabel("View Line Numbers:");
 			lineNumCheckBox = new JCheckBox("View Line Numbers", lineNumberIsVisible);
-			//panelLineNum.add(lineNumLabel);
 			panelLineNum.add(lineNumCheckBox);
-			//panelLineNum.setBorder(new EmptyBorder(0, 0, 5, 0));
 			panelSettings.add(panelLineNum);
 			
 			//install flatlaf themes so that they show up when UIManager.getInstalledLookAndFeels() is called
@@ -772,6 +645,7 @@ public class JavaNotes {
 			panelThemes.add(new JLabel("Theme:"));
 			themeComboBox = new JComboBox(UIManager.getInstalledLookAndFeels());
 			panelThemes.add(themeComboBox);
+			//add padding to bottom because some LAFs mess up spacing between settings and the apply button
 			panelThemes.setBorder(new EmptyBorder(0, 0, 20, 0));
 			panelSettings.add(panelThemes);
 			
@@ -796,9 +670,7 @@ public class JavaNotes {
 						editor.lineNumbers.setVisible(lineNumberIsVisible);
 					}
 					
-					//System.out.println("LAF: " + themeComboBox.getSelectedItem());
 					try {
-						//System.out.println(((UIManager.LookAndFeelInfo) themeComboBox.getSelectedItem()).getClassName());
 						UIManager.setLookAndFeel( ((UIManager.LookAndFeelInfo) themeComboBox.getSelectedItem()).getClassName() );
 						SwingUtilities.updateComponentTreeUI(frame);
 						SwingUtilities.updateComponentTreeUI(settings);
@@ -826,14 +698,14 @@ public class JavaNotes {
 	
 	private static final class HighLightDocumentFilter extends DocumentFilter {
 		
-		Pattern pattern;// = buildPattern(keywords);
+		Pattern pattern;
 		Pattern patternSecondary;
-		Pattern patternBold;// = buildPattern(keywordsBold);
+		Pattern patternBold;
 		Pattern patternBoldSecondary;
 		Pattern number = Pattern.compile("[0-9]");
-		Pattern comment;// = Pattern.compile("//.*[\\n]*");
-		Pattern multiLineComment;// = Pattern.compile("[//][/*][^*.*$*]*[/*][//]", Pattern.MULTILINE);
-		Pattern string;// = Pattern.compile("[\"].*?[\"]");
+		Pattern comment;
+		Pattern multiLineComment;
+		Pattern string;
 		Pattern charPattern;
 		Pattern multiLineComment2;
 		//Pattern lines = Pattern.compile("$", Pattern.MULTILINE);
@@ -846,7 +718,7 @@ public class JavaNotes {
 			text = textNew;
 			doc = text.getStyledDocument();
 			loadSytaxHighlighting();
-			System.out.println("UIManager Color = " + UIManager.getDefaults());
+			//System.out.println("UIManager Color = " + UIManager.getDefaults());
 		}
 		
 		public void loadSytaxHighlighting() {
@@ -1003,24 +875,6 @@ public class JavaNotes {
 			String paneText = text.getText();
 			
 			//look for tokens and highlight them
-			/*matcher = pattern.matcher(paneText);
-			matcherSecondary = patternSecondary.matcher(paneText);
-			matcherBold = patternBold.matcher(paneText);
-			matcherBoldSecondary = patternBoldSecondary.matcher(paneText);
-			matcherNumber = number.matcher(paneText);
-			matcherComment = comment.matcher(paneText);
-			matcherMultiLineComment = multiLineComment.matcher(paneText);
-			matcherMultiLineComment2 = multiLineComment2.matcher(paneText);
-			matcherString = string.matcher(paneText);
-			matcherCharPattern = charPattern.matcher(paneText);*/
-			//matcherLines = lines.matcher(paneText);
-			/*Matcher matcher = pattern.matcher(paneText);
-			Matcher matcherBold = patternBold.matcher(paneText);
-			Matcher matcherNumber = number.matcher(paneText);
-			Matcher matcherComment = comment.matcher(paneText);
-			Matcher matcherMultiLineComment = multiLineComment.matcher(paneText);
-			Matcher matcherString = string.matcher(paneText);*/
-			
 			if(pattern != null) {
 			matcher = pattern.matcher(paneText);
 				while(matcher.find()) {
@@ -1095,7 +949,7 @@ public class JavaNotes {
 			}
 		}
 		
-		public Pattern buildPattern(ArrayList<String> words) { //String[] words
+		public Pattern buildPattern(ArrayList<String> words) {
 			StringBuilder sb = new StringBuilder();
 			for(String token : words) {
 				sb.append("\\b"); //start a word boundary
